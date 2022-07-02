@@ -1,23 +1,77 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using OVR;
 
-public class Hand : MonoBehaviour
+
+public class HandInteraction : MonoBehaviour
 {
-    public float clickRate = 0.4f;
+    public OVRInput.Axis1D inputActive;
+    public Transform holdObjPoint;
+    public List<string> ignoreTags;
+    public float activeThresold;
 
-    public float nextClick = 0.0f;
+    private bool bIsActive;
+    private GameObject selectObj;
 
-    GameControl gameControl;
-    void Start()
+    public void OnGrabObject()
     {
-        
+        if (selectObj == null)
+        {
+            return;
+        }
+
+        selectObj.GetComponent<Rigidbody>().isKinematic = true;
+        selectObj.transform.SetParent(holdObjPoint);
+        selectObj.transform.localPosition = Vector3.zero;
     }
 
-    // Update is called once per frame
-    void Update()
+    public void OnReleaseOject()
     {
-        Debug.Log(OVRInput.Get(OVRInput.Axis1D.SecondaryIndexTrigger));
+        if (selectObj == null)
+        {
+            return;
+        }
+        selectObj.transform.SetParent(null);
+    }
+
+    private void Update()
+    {
+       UpdateGrabObl();
+    }
+
+    private void UpdateGrabObl()
+    {
+        if (OVRInput.Get(inputActive) >= activeThresold && !bIsActive)
+        {
+            OnGrabObject();
+            bIsActive = true;
+        }
+        else if (OVRInput.Get(inputActive) < activeThresold && bIsActive)
+        {
+            OnGrabObject();
+            bIsActive = false;
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        foreach (var tag in ignoreTags)
+        {
+            if (other.tag == tag)
+            {
+                return;
+            }
+        }
+
+        selectObj = other.gameObject;
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.gameObject == selectObj)
+        {
+            selectObj = null;
+        }
     }
 }
